@@ -6,7 +6,9 @@ The positive outcome is a final reported size of at least 300 acres. This is an 
 
 ## Results
 
-The analysis uses a 100,000-row extract of the FPA-FOD 4th edition. Its exact extraction and sampling method are unknown, so findings describe this extract and should not be treated as national estimates. The held-out test results, split counts, data audit, and threshold choices are recorded in [`results/`](results/). The full report is available at [`docs/index.html`](docs/index.html) after building.
+The analysis uses a 100,000-row extract of the FPA-FOD 4th edition. Its exact extraction and sampling method are unknown, so findings describe this extract and should not be treated as national estimates. On the untouched 2012–2015 test split (14,946 events; 1.41% large fires), the random forest had average precision 0.1057 and ROC AUC 0.7520; logistic regression had average precision 0.0456 and ROC AUC 0.7692. Validation-selected thresholds and the full precision, recall, F1, Brier score, and confusion counts are in [`results/test_metrics.csv`](results/test_metrics.csv). Split counts and audits are also recorded in [`results/`](results/).
+
+The published report is available at [wildfire-size-prediction](https://elijahchiu.github.io/wildfire-size-prediction/) and as [`docs/index.html`](docs/index.html) in this repository.
 
 ## Rebuild
 
