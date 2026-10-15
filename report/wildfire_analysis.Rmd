@@ -47,7 +47,7 @@ The positive class is `FIRE_SIZE >= 300`; the negative class is smaller recorded
 
 # 5. Data cleaning and date handling
 
-`DISCOVERY_DATE` is converted from Julian day number to calendar date. Month and chronological split year are derived from that date, with cyclic sine/cosine terms so December and January are adjacent. `DISCOVERY_DOY` is checked against the year’s leap-year length. Two records disagree between source `FIRE_YEAR` and the parsed discovery date; the parsed date is used for chronology, and both discrepancies are reported in the audit. Rows without a usable target/date/year in the stated period are excluded; duplicate `FOD_ID` rows are reduced to the first occurrence. The full audit counts are retained in the CSV results.
+`DISCOVERY_DATE` is converted from Julian day number to calendar date. Month and chronological split year are derived from that date, with cyclic sine/cosine terms so December and January are adjacent. `DISCOVERY_DOY` is checked against the parsed calendar day and that year’s leap-year length. Two records disagree between source `FIRE_YEAR` and the parsed discovery date; the parsed date is used for chronology, and both discrepancies are reported in the audit. Rows without a usable target/date/year in the stated period are excluded; duplicate `FOD_ID` rows are reduced to the first occurrence. The full audit counts are retained in the CSV results.
 
 # 6. Exploratory analysis
 

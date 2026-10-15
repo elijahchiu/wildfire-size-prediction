@@ -12,15 +12,14 @@ run_pipeline <- function(root=".") {
   dt <- as.Date(as.numeric(d$DISCOVERY_DATE) - 2440587.5, origin="1970-01-01")
   d$date <- dt
   d$month <- as.integer(format(dt, "%m"))
-  d$event_year <- as.integer(d$FIRE_YEAR)
+  d$event_year <- as.integer(format(d$date,"%Y"))
   d$large <- ifelse(is.finite(d$FIRE_SIZE) & d$FIRE_SIZE >= 300, 1L, ifelse(is.finite(d$FIRE_SIZE) & d$FIRE_SIZE >= 0, 0L, NA_integer_))
   # Dataset and integrity audit before exclusions.
   audit <- data.frame(
-    measure=c("rows","columns","unique_FOD_ID","duplicate_FOD_ID_rows","missing_outcome","negative_outcome","invalid_latitude","invalid_longitude","missing_county","missing_state","missing_discovery_date","invalid_doy_for_year","discovery_date_year_mismatch","outcome_under_300","outcome_at_least_300","year_min","year_max"),
-    value=c(nrow(d), source_column_count, length(unique(d$FOD_ID)), sum(duplicated(d$FOD_ID)), sum(is.na(d$FIRE_SIZE)), sum(d$FIRE_SIZE<0,na.rm=TRUE), sum(!is.na(d$LATITUDE) & (d$LATITUDE < -90 | d$LATITUDE > 90)), sum(!is.na(d$LONGITUDE) & (d$LONGITUDE < -180 | d$LONGITUDE > 180)), sum(is.na(d$COUNTY)), sum(is.na(d$STATE)), sum(is.na(d$date)), sum(!is.na(d$DISCOVERY_DOY) & (d$DISCOVERY_DOY < 1 | d$DISCOVERY_DOY > ifelse(leap_year(d$event_year),366,365))), sum(!is.na(d$date) & as.integer(format(d$date,"%Y")) != d$event_year), sum(d$large==0,na.rm=TRUE), sum(d$large==1,na.rm=TRUE), min(d$event_year,na.rm=TRUE), max(d$event_year,na.rm=TRUE)), stringsAsFactors=FALSE)
+    measure=c("rows","columns","unique_FOD_ID","duplicate_FOD_ID_rows","missing_outcome","negative_outcome","invalid_latitude","invalid_longitude","missing_county","missing_state","missing_discovery_date","invalid_doy_for_year","discovery_doy_date_mismatch","discovery_date_year_mismatch","outcome_under_300","outcome_at_least_300","year_min","year_max"),
+    value=c(nrow(d), source_column_count, length(unique(d$FOD_ID)), sum(duplicated(d$FOD_ID)), sum(is.na(d$FIRE_SIZE)), sum(d$FIRE_SIZE<0,na.rm=TRUE), sum(!is.na(d$LATITUDE) & (d$LATITUDE < -90 | d$LATITUDE > 90)), sum(!is.na(d$LONGITUDE) & (d$LONGITUDE < -180 | d$LONGITUDE > 180)), sum(is.na(d$COUNTY)), sum(is.na(d$STATE)), sum(is.na(d$date)), sum(!is.na(d$DISCOVERY_DOY) & (d$DISCOVERY_DOY < 1 | d$DISCOVERY_DOY > ifelse(leap_year(d$event_year),366,365))), sum(!is.na(d$DISCOVERY_DOY) & !is.na(d$date) & as.integer(format(d$date,"%j")) != d$DISCOVERY_DOY), sum(!is.na(d$date) & as.integer(format(d$date,"%Y")) != d$FIRE_YEAR), sum(d$large==0,na.rm=TRUE), sum(d$large==1,na.rm=TRUE), min(d$event_year,na.rm=TRUE), max(d$event_year,na.rm=TRUE)), stringsAsFactors=FALSE)
   write_csv(audit,"results/data_audit.csv")
   # The parsed discovery date is authoritative for chronology when source FIRE_YEAR disagrees.
-  d$event_year <- as.integer(format(d$date,"%Y"))
   miss <- data.frame(column=names(d), missing_n=vapply(d,function(x)sum(is.na(x)),numeric(1)), missing_pct=100*vapply(d,function(x)mean(is.na(x)),numeric(1)))
   write_csv(miss,"results/missingness.csv")
   # Do not remove missing county records: county is never a model feature.

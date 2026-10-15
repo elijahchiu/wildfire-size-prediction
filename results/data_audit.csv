@@ -11,6 +11,7 @@
 "missing_state",0
 "missing_discovery_date",0
 "invalid_doy_for_year",0
+"discovery_doy_date_mismatch",0
 "discovery_date_year_mismatch",2
 "outcome_under_300",98619
 "outcome_at_least_300",1381

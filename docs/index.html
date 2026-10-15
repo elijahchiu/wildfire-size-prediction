@@ -568,22 +568,26 @@ is discarded solely because county is missing.</p>
 <td align="right">0</td>
 </tr>
 <tr class="odd">
+<td align="left">discovery_doy_date_mismatch</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
 <td align="left">discovery_date_year_mismatch</td>
 <td align="right">2</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">outcome_under_300</td>
 <td align="right">98619</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">outcome_at_least_300</td>
 <td align="right">1381</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">year_min</td>
 <td align="right">1992</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">year_max</td>
 <td align="right">2015</td>
 </tr>
@@ -637,13 +641,14 @@ ignition-site measurement.</p>
 <p><code>DISCOVERY_DATE</code> is converted from Julian day number to
 calendar date. Month and chronological split year are derived from that
 date, with cyclic sine/cosine terms so December and January are
-adjacent. <code>DISCOVERY_DOY</code> is checked against the year’s
-leap-year length. Two records disagree between source
-<code>FIRE_YEAR</code> and the parsed discovery date; the parsed date is
-used for chronology, and both discrepancies are reported in the audit.
-Rows without a usable target/date/year in the stated period are
-excluded; duplicate <code>FOD_ID</code> rows are reduced to the first
-occurrence. The full audit counts are retained in the CSV results.</p>
+adjacent. <code>DISCOVERY_DOY</code> is checked against the parsed
+calendar day and that year’s leap-year length. Two records disagree
+between source <code>FIRE_YEAR</code> and the parsed discovery date; the
+parsed date is used for chronology, and both discrepancies are reported
+in the audit. Rows without a usable target/date/year in the stated
+period are excluded; duplicate <code>FOD_ID</code> rows are reduced to
+the first occurrence. The full audit counts are retained in the CSV
+results.</p>
 </div>
 <div id="exploratory-analysis" class="section level1">
 <h1>6. Exploratory analysis</h1>
