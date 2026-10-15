@@ -1,0 +1,3 @@
+*.R text eol=lf linguist-language=R
+*.Rmd text eol=lf linguist-language=R
+*.html linguist-detectable=false

@@ -1,0 +1,103 @@
+---
+title: "Predicting the eventual size of recorded wildfires"
+author: "Elijah Chiu | UC Davis STA 141A"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    self_contained: true
+    toc: true
+    toc_depth: 2
+    theme: readable
+    code_folding: hide
+params:
+  project_root: ".."
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, fig.width=8, fig.height=4.8)
+project_root <- normalizePath("..", mustWork=TRUE)
+knitr::opts_knit$set(root.dir=project_root)
+if (!file.exists(file.path(project_root,"results/test_metrics.csv"))) stop("Run scripts/run_all.R first")
+audit <- read.csv(file.path(project_root,"results/data_audit.csv"))
+splits <- read.csv(file.path(project_root,"results/split_summary.csv"))
+metrics <- read.csv(file.path(project_root,"results/test_metrics.csv"))
+cal <- read.csv(file.path(project_root,"results/calibration.csv"))
+```
+
+# 1. Question and scope
+
+Can discovery date and recorded location help classify whether an already-recorded wildfire eventually burned at least 300 acres? The unit is one recorded incident. This project does not predict whether a fire starts, and it does not create fire-free county-month observations.
+
+# 2. Data source and provenance
+
+The column names and records are consistent with the Fire Program Analysis Fire-Occurrence Database (FPA-FOD), 4th edition, covering 1992–2015. That edition contains roughly 1.88 million georeferenced records. The Forest Service archive describes the edition and provides the canonical citation: [Short (2017), FPA-FOD 4th edition](https://doi.org/10.2737/RDS-2013-0009.4). The supplied file has 100,000 rows, so it is an extract. The exact extraction method, selection probability, and extraction date were not supplied; therefore this analysis cannot claim representative national estimates. See `DATA_SOURCES.md`.
+
+# 3. Data audit
+
+The analysis audits IDs, missing/negative outcomes, date fields, coordinate bounds, state and county missingness, and the target prevalence. Missing county values are retained because county is not used as a predictor. Invalid coordinates are set missing and imputed from training-set medians for models that need coordinates. No incident is discarded solely because county is missing.
+
+```{r audit}
+knitr::kable(audit, caption="Source extract audit")
+knitr::kable(splits, digits=3, caption="Chronological partitions")
+```
+
+# 4. Target and information timing
+
+The positive class is `FIRE_SIZE >= 300`; the negative class is smaller recorded fires. Final size and size class define the outcome and never enter the feature matrix. Containment fields, cause, ownership, reporting-unit identifiers, and post-event administrative identifiers are also excluded. Year, cyclic discovery month, state, and latitude/longitude are treated as discovery-time context. Coordinates can be approximate; their use is a limitation, not a claim of precise ignition-site measurement.
+
+# 5. Data cleaning and date handling
+
+`DISCOVERY_DATE` is converted from Julian day number to calendar date. Month and chronological split year are derived from that date, with cyclic sine/cosine terms so December and January are adjacent. `DISCOVERY_DOY` is checked against the year’s leap-year length. Two records disagree between source `FIRE_YEAR` and the parsed discovery date; the parsed date is used for chronology, and both discrepancies are reported in the audit. Rows without a usable target/date/year in the stated period are excluded; duplicate `FOD_ID` rows are reduced to the first occurrence. The full audit counts are retained in the CSV results.
+
+# 6. Exploratory analysis
+
+The target is imbalanced: a model can appear accurate by mostly predicting small fires. Model comparisons therefore include discrimination, precision-recall, calibration, and a prevalence baseline. These summaries describe the supplied extract only.
+
+```{r plots}
+dat <- read.csv("data/wildfires_sample_100k.csv")
+par(mfrow=c(1,2))
+hist(log10(dat$FIRE_SIZE[is.finite(dat$FIRE_SIZE) & dat$FIRE_SIZE>0]), breaks=40,
+     main="Recorded fire size (log10 acres)", xlab="log10(acres)", col="#547A8A", border="white")
+ms <- read.csv("results/month_summary.csv")
+barplot(ms$large_share, names.arg=month.abb[ms$month], col="#D78A45", border=NA,
+        main="Share >= 300 acres by discovery month", ylab="Share", ylim=c(0,max(ms$large_share)*1.15))
+par(mfrow=c(1,1))
+```
+
+```{r other-plots}
+yr <- read.csv("results/year_summary.csv")
+plot(yr$year, yr$large_share, type="b", pch=19, col="#547A8A", xlab="Discovery year", ylab="Share >= 300 acres", main="Large-fire share by year")
+st <- read.csv("results/state_summary.csv"); st <- st[st$n>=100,]; st <- st[order(st$large_share),]
+if(nrow(st)>0) { par(mar=c(5,8,3,1)); barplot(st$large_share, names.arg=st$state, horiz=TRUE, las=1, cex.names=.55, col="#547A8A", border=NA, xlab="Share >= 300 acres", main="By state (at least 100 sampled fires)"); par(mar=c(5,4,4,2)+.1) }
+```
+
+# 7. Split design
+
+The split is chronological: training 1992–2007, validation 2008–2011, and untouched test 2012–2015. It tests later years within this historical data period, not generalization to current wildfire conditions. Partitions are fixed before test scores are examined. Class counts and prevalence are reported above.
+
+# 8. Models and fair comparison
+
+The benchmark predicts the training prevalence for every test event. The season-only logistic model uses cyclic month terms. Full logistic regression and probability random forest use the same underlying features: year, cyclic month, state, latitude, and longitude. Coordinate medians, state vocabulary, model fitting, and threshold choice are learned from training/validation only. Thresholds are selected on validation by F1; the test set is used once for final metrics. No class balancing was applied because these are probability models and calibration is evaluated directly.
+
+# 9. Test results
+
+```{r results}
+knitr::kable(metrics, digits=4, caption="Untouched chronological test results")
+```
+
+ROC AUC measures ranking across thresholds; average precision summarizes the precision-recall curve and should be read against the test prevalence. Precision, recall, and F1 use thresholds selected on validation. Brier score is the mean squared probability error. Confusion counts are included so the threshold-dependent results remain visible.
+
+# 10. Calibration and interpretation
+
+```{r calibration}
+model <- "random_forest"
+z <- cal[cal$model==model,]
+plot(z$predicted,z$observed,pch=19,ylim=c(0,1),xlim=c(0,1),xlab="Mean predicted probability",ylab="Observed large-fire share",main="Random forest test calibration")
+abline(0,1,lty=2,col="grey40")
+```
+
+A high ROC AUC alone would not establish a useful operational warning system. The data are retrospective reports, not a real-time alert dataset; predictors may be recorded with delays or approximation, the extract’s sampling is undocumented, and the historical relationship may shift. This model is an educational classification analysis, not a fire-management tool.
+
+# 11. Reproducibility and limitations
+
+Run `Rscript scripts/run_all.R` from the project root to rebuild the audit, metrics, charts, and this self-contained page. Run `Rscript tests/check_pipeline.R` for structural and leakage checks. The CSV output files in `results/` are the machine-readable record of the results shown here. The study is limited by unknown extract sampling, missing and potentially imprecise geography, reporting differences across agencies and time, historical period, and the distinction between recorded discovery context and information reliably available to responders at that moment.
